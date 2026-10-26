@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI civilizace v Minecraftu</title>
+<meta name="description" content="15 AI obyvatel žije nonstop ve světě Minecraftu – co dělají, co si myslí a co se ve vesnici děje.">
+<style>
+  :root {
+    --bg: #f4f1ea; --panel: #fffdf8; --ink: #23201b; --muted: #776f63; --line: #e3ddd1;
+    --accent: #3f7d4e; --accent-soft: #e2efe2; --warn: #b8701c; --bad: #b3412f; --chip: #efe9de;
+    --think: #5b5fa6; --chat: #2f6f8f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #16150f; --panel: #1f1e17; --ink: #ece7dc; --muted: #a39b8c; --line: #343126;
+      --accent: #78b886; --accent-soft: #233528; --warn: #e3a053; --bad: #e57a66; --chip: #2a281f;
+      --think: #9ea2e6; --chat: #7cbfdf; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 18px 16px 10px; max-width: 1100px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+  .pill { font-size: 13px; padding: 3px 10px; border-radius: 99px; background: var(--chip); color: var(--muted); }
+  .pill.ok { background: var(--accent-soft); color: var(--accent); }
+  .pill.bad { color: var(--bad); }
+  main { max-width: 1100px; margin: 0 auto; padding: 0 16px 40px; }
+  footer { max-width: 1100px; margin: 0 auto; padding: 0 16px 30px; font-size: 13px; color: var(--muted); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 6px 0 14px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .stat .k { font-size: 12px; color: var(--muted); }
+  .stat .v { font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .stat .s { font-size: 12px; color: var(--muted); }
+  .bar { height: 5px; background: var(--chip); border-radius: 9px; margin-top: 6px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); }
+  nav { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 12px; position: sticky; top: 0; background: var(--bg); padding: 8px 0; z-index: 2; }
+  nav button { border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 7px 14px; border-radius: 99px; font: inherit; cursor: pointer; white-space: nowrap; }
+  nav button.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .tab { display: none; } .tab.on { display: block; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .card h3 { margin: 0; font-size: 16px; display: flex; gap: 8px; align-items: baseline; }
+  .role { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; }
+  .dot.on { background: var(--accent); }
+  .act { margin: 6px 0 4px; font-weight: 550; }
+  .meta { font-size: 13px; color: var(--muted); }
+  .quote { font-size: 14px; margin-top: 6px; padding-left: 9px; border-left: 3px solid var(--line); }
+  .quote.think { border-color: var(--think); color: var(--think); font-style: italic; }
+  .quote.chat { border-color: var(--chat); }
+  details { margin-top: 8px; font-size: 13px; }
+  summary { cursor: pointer; color: var(--muted); }
+  .feed { display: flex; flex-direction: column; gap: 6px; }
+  .ev { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 7px 11px; font-size: 14px; }
+  .ev b { font-weight: 650; }
+  .ev .t { color: var(--muted); font-size: 12px; margin-right: 6px; font-variant-numeric: tabular-nums; }
+  .ev.chat { border-left: 3px solid var(--chat); }
+  .ev.think { border-left: 3px solid var(--think); color: var(--think); }
+  .ev.deep { background: var(--accent-soft); }
+  .tag { font-size: 11px; padding: 1px 7px; border-radius: 99px; background: var(--think); color: var(--panel); font-weight: 600; }
+  .quote.plan { border-color: var(--accent); font-size: 13px; }
+  .ev.error { border-left: 3px solid var(--bad); }
+  .ev.money { border-left: 3px solid var(--warn); }
+  .ev.council { border-left: 3px solid var(--accent); }
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; font-size: 14px; color: var(--muted); }
+  ol, ul { margin: 6px 0; padding-left: 20px; }
+  h2 { font-size: 15px; margin: 4px 0 6px; }
+  .section { margin-bottom: 12px; }
+  form.say { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--line); padding: 10px 16px; display: flex; gap: 8px; }
+  form.say input { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; }
+  form.say button { padding: 10px 14px; border-radius: 10px; border: 0; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  .empty { color: var(--muted); font-size: 14px; }
+  button.peek { margin-top: 6px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+  pre.peekout { white-space: pre-wrap; font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; max-height: 360px; overflow: auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>AI civilizace v Minecraftu</h1>
+  <span id="online" class="pill">…</span>
+  <span id="fresh" class="pill">…</span>
+  <span id="brain" class="pill">…</span>
+</header>
+<main>
+  <div class="stats" id="stats"></div>
+  <nav>
+    <button data-tab="lide" class="on">Obyvatelé</button>
+    <button data-tab="deni">Dění</button>
+    <button data-tab="vesnice">Vesnice</button>
+    <button data-tab="kronika">Kronika</button>
+  </nav>
+  <section class="tab on" id="lide"><div class="grid" id="agents"></div></section>
+  <section class="tab" id="deni">
+    <div class="filters">
+      <label><input type="checkbox" data-k="chat" checked> řeč</label>
+      <label><input type="checkbox" data-k="think" checked> myšlenky</label>
+      <label><input type="checkbox" data-k="action" checked> činy</label>
+      <label><input type="checkbox" data-k="council" checked> vesnice</label>
+      <label><input type="checkbox" data-k="system"> systém</label>
+      <label><input type="checkbox" data-k="error"> chyby</label>
+      <label><input type="checkbox" data-k="money" checked> peníze</label>
+    </div>
+    <div class="feed" id="feed"></div>
+  </section>
+  <section class="tab" id="vesnice"><div class="grid" id="village"></div></section>
+  <section class="tab" id="kronika"><div class="feed" id="chronicle"></div></section>
+</main>
+<footer>Veřejný náhled – data se obnovují každých 5 minut. Obyvatelé jsou AI (Claude) a rozhodují se sami.</footer>
+<script>
+const $ = s => document.querySelector(s)
+// data nahrává server do větve „data“ tohoto repozitáře (pokatocz.github.io/mc-civilizace → Pokatocz/mc-civilizace)
+const OWNER = location.hostname.endsWith('.github.io') ? location.hostname.split('.')[0] : 'Pokatocz'
+const REPO = location.hostname.endsWith('.github.io') ? (location.pathname.split('/')[1] || 'mc-civilizace') : 'mc-civilizace'
+const DATA_URL = `https://raw.githubusercontent.com/${OWNER}/${REPO}/data/state.json`
+let last = null
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+const hm = t => new Date(t).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
+const usd = n => '$' + (n || 0).toFixed(n < 1 ? 3 : 2)
+let feed = []
+const openCards = new Set()
+const peeks = {}
+document.addEventListener('toggle', e => {
+  const d = e.target
+  if (d.tagName === 'DETAILS' && d.dataset.n) d.open ? openCards.add(d.dataset.n) : openCards.delete(d.dataset.n)
+}, true)
+document.addEventListener('click', e => {
+  const b = e.target.closest('button.peek')
+  if (!b || !last) return
+  const d = (last.details || {})[b.dataset.n] || {}
+  peeks[b.dataset.n] = (d.perception || 'nic') +
+    (d.results && d.results.length ? '\n\nPOSLEDNÍ VÝSLEDKY:\n' + d.results.map(r => '- ' + r).join('\n') : '') +
+    (d.heard && d.heard.length ? '\n\nSLYŠEL(A):\n' + d.heard.map(h => `- ${h.who}: ${h.text}`).join('\n') : '') +
+    (d.thinkReason ? '\n\nDŮVOD PŘÍŠTÍHO PŘEMÝŠLENÍ: ' + d.thinkReason : '')
+  render(last)
+})
+const show ={ chat: true, think: true, action: true, council: true, system: false, error: false, money: true }
+
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b))
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.id === b.dataset.tab))
+})
+document.querySelectorAll('.filters input').forEach(i => i.onchange = () => { show[i.dataset.k] = i.checked; renderFeed() })
+
+function stat (k, v, s, pct) {
+  return `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${s ? `<div class="s">${s}</div>` : ''}${pct !== undefined ? `<div class="bar"><i style="width:${Math.min(100, Math.max(0, pct))}%"></i></div>` : ''}</div>`
+}
+
+function render (st) {
+  const age = Math.max(0, Math.round((Date.now() - st.now) / 60000))
+  $('#fresh').textContent = age < 1 ? 'aktuální' : `stav před ${age} min`
+  $('#fresh').className = 'pill ' + (age <= 15 ? 'ok' : 'bad')
+  const on = st.agents.filter(a => a.online).length
+  $('#online').textContent = `${on}/${st.agents.length} ve hře`
+  $('#online').className = 'pill ' + (on ? 'ok' : 'bad')
+  const brainOk = st.llm.status === 'ok' && !st.budget.noCredit
+  $('#brain').textContent = st.llm.dryRun ? 'mozek: zkušební (zdarma)' : brainOk ? 'mozek: ' + st.llm.model : 'mozek: ' + st.llm.status
+  $('#brain').className = 'pill ' + (brainOk ? 'ok' : 'bad')
+  const b = st.budget
+  const fmtDur = sec => sec == null ? 'vypnuto' : sec < 90 ? `${Math.round(sec)} s` : sec < 5400 ? `${Math.round(sec / 60)} min` : `${(sec / 3600).toFixed(1).replace('.', ',')} h`
+  const endDay = new Date(b.periodEnd - 1).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' })
+  $('#stats').innerHTML =
+    stat('Útrata dnes', usd(b.today), `dnešní příděl ${usd(b.daily)} · tempo ${usd(b.allowedNow)}`, 100 * b.today / (b.daily || 1)) +
+    (b.monthlyMode
+      ? stat('Toto období', usd(b.periodSpent), `z ${usd(b.monthly)} · období do ${endDay}`, 100 * b.periodSpent / b.monthly)
+      : stat('Celkem utraceno', usd(b.total), b.totalCap > 0 ? `z ${usd(b.totalCap)}` : `${b.calls} volání`, b.totalCap > 0 ? 100 * b.total / b.totalCap : undefined)) +
+    stat('Přemýšlení', fmtDur(st.thinkIntervalSec), `rychlé na agenta · hluboké ${fmtDur(st.deepIntervalSec)} · ${b.calls} volání`) +
+    stat('Server', `${st.system.cpu} % CPU`, `RAM ${st.system.memUsedPct} % · běží ${Math.round(st.uptimeMin / 60)} h`, st.system.cpu)
+
+  $('#agents').innerHTML = st.agents.map(a => `
+    <div class="card">
+      <h3><span class="dot ${a.online ? 'on' : ''}"></span>${esc(a.name)} <span class="role">${esc(a.inclination)}</span></h3>
+      <div class="act">${esc(a.activity || (a.online ? 'rozhlíží se' : 'není ve hře'))}</div>
+      <div class="meta">❤ ${a.health ?? '–'} · 🍞 ${a.food ?? '–'} · ${a.pos ? `${a.pos.x}, ${a.pos.y}, ${a.pos.z}` : '–'}</div>
+      ${a.goal ? `<div class="meta">Cíl: ${esc(a.goal)}</div>` : ''}
+      ${a.tasks && a.tasks.length ? `<div class="meta">Úkoly: ${a.tasks.map(t => esc(t.what + (t.for ? ' (pro ' + t.for + ')' : ''))).join(' · ')}</div>` : ''}
+      ${a.thought ? `<div class="quote think">${esc(a.thought)}</div>` : ''}
+      ${a.longPlan ? `<div class="quote plan"><b>Plán:</b> ${esc(a.longPlan)}</div>` : ''}
+      ${a.said ? `<div class="quote chat">„${esc(a.said)}“</div>` : ''}
+      ${a.brain && a.brain !== 'ok' ? `<div class="meta">Mozek: ${esc(a.brain)}</div>` : ''}
+      <details data-n="${esc(a.name)}" ${openCards.has(a.name) ? 'open' : ''}><summary>Paměť, vztahy, inventář</summary>
+        ${a.summary ? `<p>${esc(a.summary)}</p>` : ''}
+        ${Object.keys(a.opinions || {}).length ? '<ul>' + Object.entries(a.opinions).map(([n, o]) => `<li><b>${esc(n)}</b>: ${esc(o)}</li>`).join('') + '</ul>' : ''}
+        ${a.plan.length ? `<p>Plán: ${esc(a.plan.join(' → '))}</p>` : ''}
+        ${a.home ? `<p class="meta">Domov: ${esc(a.home)}</p>` : ''}
+        ${a.skills && a.skills.length ? `<p class="meta">Vlastní dovednosti: ${esc(a.skills.join(', '))}</p>` : ''}
+        <p class="meta">${esc(a.inventory.join(', ') || 'prázdný inventář')}</p>
+        <p class="meta">přemýšlel(a) ${a.thinks}× (z toho hluboce ${a.deepThinks}×) · zemřel(a) ${a.deaths}×</p>
+        <button class="peek" data-n="${esc(a.name)}">Co právě vidí a ví</button>
+        ${peeks[a.name] ? `<pre class="peekout">${esc(peeks[a.name])}</pre>` : ''}
+      </details>
+    </div>`).join('') || '<p class="empty">Zatím nikdo.</p>'
+
+  const s = st.society
+  const vote = s.vote ? `<div class="card section"><h2>Probíhá hlasování (do ${hm(s.vote.endsAt)})</h2><ol>${s.vote.items.map(t => `<li>${esc(t)}</li>`).join('')}</ol><div class="meta">Hlasovalo: ${Object.keys(s.vote.ballots).length}</div></div>` : ''
+  const chest = s.chest ? Object.entries(s.chest.items).sort((a, b) => b[1] - a[1]).map(([n, c]) => `${esc(n)}×${c}`).join(', ') : ''
+  const el = s.election || {}
+  const presBox = (el.president || el.election || el.last) ? `<div class="card section"><h2>Prezident vesnice</h2>` +
+    (el.president ? `<p><b>${esc(el.president.name)}</b> – zvolen(a) ${el.president.votes} hlasy z ${el.president.voters}${el.president.lot ? ' (los)' : ''}, ve funkci do ${new Date(el.president.termEndsAt).toLocaleString('cs-CZ', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}${el.president.program ? `<br><span class="meta">Program: ${esc(el.president.program)}</span>` : ''}</p>` : '<p class="empty">nikdo</p>') +
+    (el.election ? `<p><b>${el.election.phase === 'nominace' ? 'Přihlašování kandidátů' : 'Hlasování'}</b> do ${hm(el.election.endsAt)}${el.election.phase === 'volba' ? ` (hlasovalo ${el.election.voted})` : ''}</p><ul>${el.election.candidates.map(c => `<li><b>${esc(c.name)}</b>${c.votes != null ? ` – ${c.votes} hl.` : ''}${c.program ? `: ${esc(c.program)}` : ''}</li>`).join('') || '<li class="empty">zatím nikdo</li>'}</ul>` : (el.nextElectionAt && !el.president ? `<p class="meta">Další volby: ${new Date(el.nextElectionAt).toLocaleString('cs-CZ', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>` : '')) +
+    (el.last && el.last.results && el.last.results.length ? `<p class="meta">Minulé volby: ${el.last.results.map(r => `${esc(r.name)} ${r.votes}`).join(', ')}</p>` : '') +
+    `</div>` : ''
+  $('#village').innerHTML = presBox + vote +
+    `<div class="card section"><h2>Knihovna (${(s.library || []).length})</h2>${(s.library || []).length ? (s.library || []).slice().reverse().map(e => `<details><summary>${esc(e.q)} <span class="empty">– ${esc(e.by)}</span></summary><p>${esc(e.a)}</p></details>`).join('') : '<p class="empty">zatím nic</p>'}</div>` +
+    `<div class="card section"><h2>Zákony</h2><ol>${s.laws.map(l => `<li>${esc(l.text)}</li>`).join('') || '<li class="empty">žádné</li>'}</ol></div>` +
+    `<div class="card section"><h2>Návrhy pro radu</h2>${s.proposals.length ? '<ul>' + s.proposals.map(p => `<li><b>${esc(p.who)}</b>: ${esc(p.text)}</li>`).join('') + '</ul>' : '<p class="empty">žádné</p>'}</div>` +
+    `<div class="card section"><h2>Nástěnka</h2>${s.board.length ? '<ul>' + s.board.slice().reverse().map(p => `<li><b>${esc(p.who)}</b> (${hm(p.t)}): ${esc(p.text)}</li>`).join('') + '</ul>' : '<p class="empty">prázdná</p>'}</div>` +
+    `<div class="card section"><h2>Místa</h2><ul>${Object.entries(s.places).map(([n, p]) => `<li><b>${esc(n)}</b> – ${p.x}, ${p.y}, ${p.z}${p.by && p.by !== 'system' ? ' (' + esc(p.by) + ')' : ''}</li>`).join('')}</ul></div>` +
+    `<div class="card section"><h2>Stavby (${s.buildings.length})</h2>${s.buildings.length ? '<ul>' + s.buildings.slice().reverse().map(b => `<li>${esc(b.type)}${b.name ? ' „' + esc(b.name) + '“' : ''} – ${esc(b.owner)}</li>`).join('') + '</ul>' : '<p class="empty">zatím žádné</p>'}</div>` +
+    `<div class="card section"><h2>Společná truhla</h2><p class="meta">${chest || 'neznámý obsah'}</p></div>` +
+    `<div class="card section"><h2>Dovednosti vesnice</h2>${Object.keys(s.skills || {}).length ? '<ul>' + Object.entries(s.skills).map(([n, k]) => `<li><b>${esc(n)}</b> (${esc(k.by)})${k.description ? ': ' + esc(k.description) : ''}</li>`).join('') + '</ul>' : '<p class="empty">zatím žádné</p>'}</div>`
+  $('#chronicle').innerHTML = s.chronicle.slice().reverse().map(c => `<div class="ev council"><span class="t">${new Date(c.t).toLocaleString('cs-CZ', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>${esc(c.text)}</div>`).join('') || '<p class="empty">Kronika je zatím prázdná.</p>'
+}
+
+function renderFeed () {
+  $('#feed').innerHTML = feed.filter(e => show[e.kind]).slice(-150).reverse().map(e =>
+    `<div class="ev ${e.kind}${e.deep ? ' deep' : ''}"><span class="t">${hm(e.t)}</span>${e.who ? `<b>${esc(e.who)}</b>${e.deep ? ' <span class="tag">hluboce</span>' : ''}: ` : ''}${esc(e.text)}</div>`).join('') || '<p class="empty">Zatím se nic nestalo.</p>'
+}
+
+async function poll () {
+  try {
+    const st = await (await fetch(DATA_URL + '?t=' + Math.floor(Date.now() / 60000), { cache: 'no-store' })).json()
+    if (!last || st.now !== last.now) { last = st; feed = st.feed || []; renderFeed() }
+    render(last)
+  } catch (e) {
+    if (!last) $('#online').textContent = 'data zatím nejsou k dispozici'
+  }
+}
+poll(); setInterval(poll, 60000)
+</script>
+</body>
+</html>
